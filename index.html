@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rapor Perkembangan Holistik Santri - Malika Islamic Boarding School</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        /* Custom styles for print view (PDF download preparation) */
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            .page-break {
+                page-break-before: always;
+            }
+            body {
+                margin: 0;
+                padding: 0;
+                background: white;
+            }
+            #report-container {
+                box-shadow: none;
+                margin: 0;
+                padding: 0;
+                border: none;
+                min-height: 100vh;
+            }
+            .report-card {
+                break-inside: avoid;
+            }
+        }
+        /* Styling the main report container */
+        #report-container {
+            min-height: 297mm; /* A4 height */
+            width: 210mm; /* A4 width */
+        }
+        
+        /* Custom Header Styling for professional look - Changed from Green to Indigo */
+        .report-header {
+            border-bottom: 5px solid #4f46e5; /* Using Indigo-600 equivalent */
+            padding-bottom: 1rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+        }
+        /* Bar Graph Styling */
+        .bar-container {
+            height: 1.5rem;
+            border-radius: 0.375rem;
+            display: flex;
+            align-items: center;
+            overflow: hidden;
+            box-shadow: inset 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        }
+        .bar-segment {
+            height: 100%;
+            transition: width 0.5s ease-in-out;
+            text-align: right;
+            padding-right: 0.5rem;
+            color: white;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="no-print mb-6 p-4 bg-white shadow-lg rounded-xl flex flex-col lg:flex-row items-center justify-between gap-4">
+        <h1 class="text-2xl font-bold text-gray-800">Sistem Laporan Santri</h1>
+        <div class="flex flex-col sm:flex-row gap-3 w-full lg:w-auto flex-wrap">
+            <select id="class-select" class="p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 w-full sm:w-48">
+                <option value="">Pilih Kelas</option>
+            </select>
+            
+            <input type="text" id="wali-kamar-input" placeholder="Input Nama Wali Kamar" class="p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 w-full sm:w-48">
+            
+            <!-- Tombol dan Input Upload File CSV -->
+            <input type="file" id="data-upload" accept=".csv" class="hidden">
+            <button id="upload-btn" class="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-150 ease-in-out w-full sm:w-auto">
+                Upload Data CSV
+            </button>
+            <!-- Akhir Tombol Upload -->
+
+            <button id="prev-student-btn" class="bg-gray-400 hover:bg-gray-500 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-150 ease-in-out disabled:opacity-50 w-full sm:w-auto" disabled>
+                &lt; Prev Santri
+            </button>
+            <button id="next-student-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-150 ease-in-out disabled:opacity-50 w-full sm:w-auto" disabled>
+                Next Santri &gt;
+            </button>
+            <button id="print-pdf-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-150 ease-in-out w-full sm:w-auto">
+                Download PDF
+            </button>
+        </div>
+    </div>
+    
+    <!-- Main Report Container (A4 Size) -->
+    <div id="report-container" class="mx-auto bg-white p-8 shadow-2xl border border-gray-200">
+        <div id="report-content">
+            <!-- Content will be generated here -->
+            <div class="text-center p-20 text-gray-500">
+                <p class="text-xl font-semibold">Silakan pilih kelas dan santri untuk melihat laporan.</p>
+                <p>Gunakan fitur 'Download PDF' atau unggah data CSV.</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal untuk Instruksi CSV -->
+    <div id="csv-instruction-modal" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+        <div class="bg-white p-6 rounded-xl shadow-2xl max-w-lg w-full">
+            <h3 class="text-xl font-bold text-indigo-700 mb-4">Instruksi Format CSV</h3>
+            <p class="text-sm text-gray-700 mb-4">Untuk memastikan data terunggah dengan benar, file CSV Anda harus memiliki header kolom yang tepat, dengan **Nama Santri** sebagai kunci utama. Pastikan format penulisan (termasuk spasi) sesuai.</p>
+            <p class="text-xs font-semibold text-gray-800 mb-2">Header Kolom yang Dibutuhkan (Gunakan persis seperti di bawah):</p>
+            <div class="p-3 bg-gray-100 rounded-lg text-xs font-mono overflow-x-auto">
+                Nama Santri,NIS Santri,Kelas Santri,Nilai Rata-rata ATS,Nilai Rata-rata SAS,Ulasan Tren Nilai,Hasil Psikotes Awal,Hasil Psikotes Terkini,Mata Pelajaran Unggul,Mata Pelajaran Kurang,Pencapaian Hafalan,Ibadah Harian,Sikap dan Disiplin,Interaksi Sosial,Prestasi Non Akademik,Goal Semester,Pesan Wali Kelas
+            </div>
+            <button onclick="document.getElementById('csv-instruction-modal').classList.add('hidden')" class="mt-4 bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 text-sm">Mengerti</button>
+        </div>
+    </div>
+
+
+    <script>
+        const schoolData = {
+            "SMP": {
+                kepalaSekolah: "Ustadz Abd. Halim, S.S.I",
+                classes: {
+                    "7 A Putra": { waliKelas: "Ustadz Maulana Azka, Lc.", students: ["Athariz Chalief Saputra", "Ahmad Khomaini", "Al Athar Ghaizan Nobel", "Alzabar Akbar", "Arya Devano", "Abyan Dzaky Hafizh Kurniawan", "Fadil Syafif Nugroho Sukri", "Fakhri Muhammad Mumtaz", "I Komang Raditiya Novian Pradana Putra", "Ibad Najwan", "Ibni Shidqie Al Mumtazhar", "Kenzie Dastan Shalahuddin Zan", "Khaerul A'Zam Ismail", "Khairiy Rezki Adhinata", "Lionel Pratama Nugroho", "Mahfidz Ardiansyah", "Mohamad Akromul Azam", "Mohammad Ezra Rafiandhika", "Muhammad Akhtar Al Hisyam", "Muhammad Al Fatih", "Muhammad Fatir Albahri", "Muhammad Naufal Rizki", "Muhammad Syamil At Tsauri", "Nauval Abdul Rasyid", "Pranatantra Fachrie", "Rajata Ibnu Faqih", "Reygi Antajun Hikaru", "Rifqi Irfan Hamizan", "Umar Al Jailaani", "Yossa Dzulfi Andrean", "Zahran Sahil", "Rizky Setyo Nugroho", "Teuku Rizqi Mutha"] },
+                    "7 B Putra": { waliKelas: "Ust.A.Royhan Mutsaqqof, Lc.", students: ["Abidzar Nuha Wafi", "Ach. Raihan Faiz As-Sudaisyi", "Ahmad Nazmu Durori", "Akbar Nurfatah Arsadi", "Akhdan Athaya Putra Zulfikar", "Al Barra Ananta Putra", "Annabighoh Syabanu Gunawan", "Arrais Mahardika Rusli", "Athaya Kaysan Hakim", "Aufa Gilang Pratama", "Bilal Abdul Aslam", "Bintang Dasilva Ibrahim", "Brilliant Alziddan Mustofa", "Denny Maulana Yusuf", "Fathir Muhammad Fadhilah", "Haikal Ahfwan", "Harry Harsya Shiddiq", "Ifan Sofyan", "Kenzie Adelio Tristan", "Khairul Walif", "Luthfirrahman Nafis Hananto", "Muhammad Al-Gaza Putra Dewian", "Muhammad Arafa Ekiyano Febrian", "Muhammad Dilfa Fattan", "Muhammad Fahriansyah", "Muhammad Fathan Toriq", "Muhammad Haikal Al Faisya", "Muhammad Najetullah", "Muhammad Raditya Fauzan", "Muhammad Waldan", "Rayhan Faiz Abdillah Hadiyanto", "Sultan Fatih Setiawan", "Zhafran Tata Hidayat"] },
+                    "7 A Putri": { waliKelas: "Sayyidah Syarifah Afifah, M.Hum", students: ["Adara Riyanti", "Aghniya Musamma Harahap", "Ahla Amany Maulidya", "Alivia Zahratukanza", "Alya Ruby Salimah", "Ameera Syahida Ajie", "Asyifa Mahira Lubis", "Bilqis Ghaisani Ahza", "Callysta Lareina Nabiha", "Cordelia Krisna Widyantari", "Deyanna Abigail Baligha Zephania", "Fathya Caliana", "Filzah Ghaisani Fikriyah", "Indhieswara Maharani", "Kanaya Athalla Dzakiyyah", "Kawa'Iba Puti Firmansyah", "Keisha Sahila Az Zahra", "Khansa Ghina Rachmani", "Mehira Mehrnaz Multazam", "Nadiya Fajria Salsabila", "Novilly Azwan", "Putri Mutia Rahmi", "Queenisa Yumna Zahirah", "Rita Madinatul Arofah", "Saffanah Saafia Zahirah", "Shelby Sinar Islamadina", "Shira Rizkia Adara", "Siti Shofa Aulia Rahman", "Syifa Anindya", "Talita Himayatul Kamilah", "Talita Khansa Saputra", "Yukqiu Natasha Ardi", "Zivana Lay"] },
+                    "7 B Putri": { waliKelas: "Sayyidah Hj. Tania Zainiyyah, S.Pd", students: ["Aesha Bellvania Kirana", "Aira Fitriani Azzahra", "Aisyah Fahira Husna", "Alya Zahra Nabila", "Ameera Isnain Setiadi", "Aulia Zahra Ibrahim", "Azizahtun Nazwa", "Ghina Bilqis Shabreen", "Hafizhah Alimah", "Haninda Aulia Dayana", "Hilma Arifa Aulia Rosid", "Jihan Amira Karim", "Keyla Khanza Ramadhani", "Nafisa Al Mahira", "Nailatisya Aquina Salsabilla", "Nilam Maulina Anggraini", "R A Najeela Putri Widiarsa", "Rhaqueena Aleameccha Alingga", "Salsabila Zovanka", "Shakila Aulia Sakhiy", "Shifa Mumtazah", "Siti Alifia Zahra", "Siti Zahwa Naura Auni", "Siti Ziarra Nur Al-Jaelani", "Syafa Savira", "Syakilah Putri Oktavia", "Syakirah Rizqia Ramadani", "Tuhfatun Najwa", "Vinca Fitranavira Putri", "Zhafira Nur Azzahra", "Tiara Izzatunnisa", "Kinara Rahmadania"] }
+                }
+            },
+            "SMA": {
+                kepalaSekolah: "Ustadz H. Sahroni, S.Pd.I",
+                classes: {
+                    "10 Putra": { waliKelas: "KH. Ahmad Baehaki, Lc", students: ["Adhwa Arsya Gatfan", "Afa Zaidan Putra Tamba", "Ahmad Rafli Dhani Muzakki", "Akmal Ihsan Huwaidi", "Albisna Zinata Ababil", "Asyraf Fairuz Mumtaz", "Attiq Muzaki Ibrahim", "Bayanaca Qotthon Elbarca", "Bazyli Rafif Azka", "Charli Andestian", "Danendra Apta Kayana", "Dhafinzha Muhammad Fakhri", "Fasabbi Haqiqie Pramada Rozak", "Irsyad Haitami Fajrin", "Mikail Abdul Majid", "Mochammad Alfath Dhafin", "Muaimar Ghadafi M. Asri", "Muhamad Fairuz Azmi", "Muhamad Rafka Alvaro", "Muhammad Adil Shidqi", "Muhammad Agla Alfathur Rahman", "Muhammad Ammar Muzakki", "Muhammad Azmi", "Muhammad Fahri Alfarizi", "Muhammad Fahri Rosadi", "Muhammad Suryo Nugra Putra Anwar", "Nawwaf Bilza Pakpahan", "Raditya Bustanul Tamam", "Raihan Ramadhan", "Salim Al Habsyi", "Sayyid Aqil Sakhiy Wahyudi", "Yudha Pratama Nurwicaksana Nasution"] },
+                    "10 Putri": { waliKelas: "KH. Ahmad Baehaki, Lc", students: ["Alfina Dhiya Ulhaq", "Amelinda Nur Febrina", "Amira Azzarine", "Anjeli Ghenia Asmedi", "Aulia Zahra Nursakinah", "Callysta Zhahira", "Citra Aulia Saputra", "Egidhea Sakha Gendis", "Faiha Ulayya", "Kanaya Azzalea Maulida", "Kayla Putri Azzahra", "Kesya Anastasya Putri", "Keysha Hana Alzena", "Khansa Avicenna", "Maia Dina Islamiy Sobariah", "Nailah Saffanah Rizqin", "Najwa Althafunisa", "Nasya Adya Mustafidah", "Raihana Radwa Fahira", "Ratu Syahlina Samlawi", "Siti Aulia Rahma", "Syifa Az Zahra", "Tia Anggrianti", "Ussy Elsinasari", "Vicky Fadilah Luthfiyana", "Virly Evelyn Dean Zahra", "Wildatul Hasanah", "Yolanda Febriani", "Yuha Rizqiyatul Muyassaroh", "Zahiratul Aisyi", "Zulfa Nurul Fauziah"] }
+                }
+            }
+        };
+
+        let currentLevel = null;
+        let currentClassName = null;
+        let currentStudents = [];
+        let currentStudentIndex = -1;
+        let currentStudentReportData = {};
+
+        const classSelect = document.getElementById('class-select');
+        const nextStudentBtn = document.getElementById('next-student-btn');
+        const prevStudentBtn = document.getElementById('prev-student-btn');
+        const reportContent = document.getElementById('report-content');
+        const waliKamarInput = document.getElementById('wali-kamar-input');
+        const printPdfBtn = document.getElementById('print-pdf-btn'); // Added reference
+        
+        const schoolAddress = "Jl. KS Tubun, RT. 002, RW. 02, Kel. Koang Jaya, Kec. Karawaci Kota Tangerang, Banten";
+        
+        function getWaliKamar(className) {
+            if (className.includes('Putra')) return 'Ustadz Ali Murtadlo (Default)';
+            if (className.includes('Putri')) return 'Ustadzah Siti Barokah (Default)';
+            return 'Wali Kamar (Default)'; 
+        }
+        
+        // --- Mapping Headers Baru (Wajib Diperbarui) ---
+        const CSV_HEADER_MAP = {
+            "Nama Santri": "studentName",
+            "NIS Santri": "nis", 
+            "Kelas Santri": "className", 
+            "Nilai Rata-rata ATS": "ats_avg",
+            "Nilai Rata-rata SAS": "sas_avg",
+            "Ulasan Tren Nilai": "scoreComparisonText",
+            "Hasil Psikotes Awal": "psikotes_initial",
+            "Hasil Psikotes Terkini": "psikotes_current",
+            "Mata Pelajaran Unggul": "excel_subjects",
+            "Mata Pelajaran Kurang": "need_imp_subjects",
+            "Pencapaian Hafalan": "hafalan",
+            "Ibadah Harian": "ibadah",
+            "Sikap dan Disiplin": "sikap",
+            "Interaksi Sosial": "interaksi",
+            "Prestasi Non Akademik": "prestasi",
+            "Goal Semester": "goal_semester",
+            "Pesan Wali Kelas": "message_wali",
+        };
+        const CSV_HEADERS_INDONESIAN = Object.keys(CSV_HEADER_MAP).join(',');
+
+
+        // Variabel ini akan diganti/diperbarui saat upload CSV
+        let SHEET_DATA_MOCK = {}; 
+
+        /**
+         * Simulates fetching report data from the in-memory SHEET_DATA_MOCK.
+         */
+        async function fetchReportDataFromSheet(studentName) {
+            await new Promise(resolve => setTimeout(resolve, 150));
+            return SHEET_DATA_MOCK[studentName] || null;
+        }
+        
+        // --- CSV Upload Logic (dipertahankan) ---
+
+        /**
+         * Utility function to parse CSV text into an array of objects (JSON).
+         */
+        function csvToArray(str, delimiter = ",") {
+            const regex = /(?:^|,)(\"(?:[^\"]+|\"\")*\"|[^,]*)/g; 
+            str = str.replace(/\r\n/g, '\n').replace(/\r/g, '\n'); 
+            const lines = str.split('\n');
+            if (lines.length <= 1) return [];
+
+            const headersRaw = [];
+            lines[0].match(regex).forEach(match => {
+                let header = match.startsWith(',') ? match.substring(1) : match;
+                header = header.replace(/^"|"$/g, '').trim();
+                if (header.length > 0) headersRaw.push(header);
+            });
+            
+            const arr = lines.slice(1).map(function (line) {
+                if (line.trim() === '') return null;
+                
+                const values = [];
+                let match;
+                while (match = regex.exec(line)) {
+                    let value = match[1];
+                    value = value.replace(/^,/, '').replace(/^"|"$/g, '').trim();
+                    values.push(value);
+                }
+
+                if (values.length !== headersRaw.length) {
+                    return null;
+                }
+
+                const el = {};
+                headersRaw.forEach(function (header, i) {
+                    const key = CSV_HEADER_MAP[header] || header.replace(/\s/g, '_'); 
+                    el[key] = values[i];
+                });
+                
+                if (!el.studentName || el.studentName.length === 0) return null;
+                
+                return el;
+            }).filter(item => item !== null && item.studentName && item.studentName.length > 0); 
+            
+            return arr;
+        }
+
+
+        /**
+         * Loads the uploaded CSV file and updates the SHEET_DATA_MOCK.
+         */
+        function loadCsvFile() {
+            const fileInput = document.getElementById('data-upload');
+            const file = fileInput.files[0];
+
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                processCsvData(e.target.result);
+            };
+            reader.onerror = function () {
+                alertUser("Gagal membaca file.", "error");
+            };
+            reader.readAsText(file);
+        }
+        
+        /**
+         * Processes the CSV text content and updates the global mock data source.
+         */
+        function processCsvData(csvText) { 
+            try {
+                const parsedData = csvToArray(csvText);
+                
+                if (parsedData.length === 0) {
+                    alertUser("Gagal memuat data. Pastikan file CSV tidak kosong, memiliki Nama Santri, dan format header benar.", "error");
+                    return;
+                }
+
+                const newSheetData = {};
+                let successCount = 0;
+                
+                parsedData.forEach(item => {
+                    if (item.studentName) {
+                        newSheetData[item.studentName] = {
+                            nis: item.nis || '-',
+                            className: item.className || '-',
+                            ats_avg: parseInt(item.ats_avg) || 0,
+                            sas_avg: parseInt(item.sas_avg) || 0,
+                            scoreComparisonText: item.scoreComparisonText,
+                            psikotes_initial: item.psikotes_initial,
+                            psikotes_current: item.psikotes_current,
+                            excel_subjects: item.excel_subjects,
+                            need_imp_subjects: item.need_imp_subjects,
+                            hafalan: item.hafalan,
+                            ibadah: item.ibadah,
+                            sikap: item.sikap,
+                            interaksi: item.interaksi,
+                            prestasi: item.prestasi,
+                            goal_semester: item.goal_semester || 'Belum ada tujuan semester berikutnya yang ditetapkan.',
+                            message_wali: item.message_wali || 'Terus tingkatkan potensi diri dan jaga akhlak mulia.',
+                        };
+                        successCount++;
+                    }
+                });
+
+                SHEET_DATA_MOCK = newSheetData;
+                alertUser(`${successCount} data santri berhasil diunggah dan dimuat!`, "success");
+                
+                if (currentClassName) {
+                    handleStudentChange();
+                }
+
+            } catch (error) {
+                console.error("Error parsing CSV:", error);
+                alertUser("Terjadi kesalahan saat mengurai file CSV. Pastikan format delimiter (koma) benar.", "error");
+            }
+        }
+        
+        // --- DEFAULT DATA GENERATION (Used if sheet data is missing) ---
+        function generateDefaultReport(studentName, className) {
+            const isPutra = className.includes('Putra');
+            const randomScore = () => Math.floor(Math.random() * (88 - 72 + 1)) + 72; 
+            const hafalanAchieved = Math.floor(Math.random() * 3) + 1;
+            const surahAchieved = ["Al-Mulk", "Ar-Rahman", "Yasin"].slice(0, hafalanAchieved);
+            
+            const ats_avg = randomScore();
+            const sas_avg = randomScore();
+            const diff = sas_avg - ats_avg;
+            
+            let scoreComparisonText;
+            if (diff > 3) {
+                scoreComparisonText = `Ada peningkatan positif. Perlu terus mempertahankan motivasi belajar.`;
+            } else if (diff >= 0) {
+                scoreComparisonText = `Nilai relatif stabil, menunjukkan konsistensi.`;
+            } else {
+                scoreComparisonText = `Perlu perhatian pada mata pelajaran tertentu karena ada sedikit penurunan nilai rata-rata.`;
+            }
+            
+            return {
+                nis: "NIS-000", // Default NIS
+                ats_avg: ats_avg,
+                sas_avg: sas_avg,
+                scoreComparisonText: scoreComparisonText,
+                psikotes_initial: "Potensi dasar yang baik, terutama di area kognitif.",
+                psikotes_current: "Perkembangan sesuai harapan, mampu mengaplikasikan logika dasar dalam kegiatan belajar.",
+                excel_subjects: isPutra ? "Matematika, TIK" : "Bahasa Inggris, Biologi",
+                need_imp_subjects: isPutra ? "Seni Budaya" : "Geografi",
+                hafalan: `${hafalanAchieved} Juz (Termasuk Juz 30 dan Surah Al-Mulk)`,
+                ibadah: "Pelaksanaan ibadah wajib baik. Dhuha dan puasa sunnah perlu konsistensi.",
+                sikap: "Cukup disiplin dan bertanggung jawab. Sering mendapat teguran ringan terkait kerapihan.",
+                interaksi: "Aktif dalam interaksi sosial, namun masih perlu dorongan untuk mengambil inisiatif kepemimpinan.",
+                prestasi: "Berpartisipasi aktif dalam kegiatan Muhadharah.",
+                goal_semester: "Diharapkan dapat meningkatkan manajemen waktu dan fokus pada penguasaan dasar-dasar ilmu syar'i.",
+                message_wali: "Ananda memiliki dasar yang kuat. Jaga semangat belajar dan tingkatkan ibadah sunnah untuk kesuksesan dunia akhirat."
+            };
+        }
+
+        // --- NAVIGATION HANDLERS ---
+        function updateNavigationButtons() {
+            nextStudentBtn.disabled = currentStudentIndex === currentStudents.length - 1;
+            prevStudentBtn.disabled = currentStudentIndex <= 0;
+            const total = currentStudents.length > 0 ? currentStudents.length : 0;
+            const current = currentStudentIndex >= 0 ? currentStudentIndex + 1 : 0;
+            
+            nextStudentBtn.textContent = `Next Santri (${current}/${total}) >`;
+            prevStudentBtn.textContent = `< Prev Santri`;
+            
+            if (current === total) {
+                nextStudentBtn.textContent = `Akhir Daftar`;
+            }
+            if (current === 0) {
+                 nextStudentBtn.textContent = `Next Santri`;
+            }
+        }
+        
+        function nextStudent() {
+            if (currentStudents.length > 0 && currentStudentIndex < currentStudents.length - 1) {
+                currentStudentIndex++;
+                handleStudentChange();
+            } else {
+                const popup = document.createElement('div');
+                popup.innerHTML = `
+                    <div id="modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                        <div class="bg-white p-6 rounded-lg shadow-xl max-w-sm text-center">
+                            <h3 class="text-xl font-bold mb-3 text-red-600">Selesai</h3>
+                            <p class="text-gray-700">Anda sudah mencapai santri terakhir di kelas ${currentClassName}.</p>
+                            <button onclick="document.getElementById('modal').remove()" class="mt-4 bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700">Tutup</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(popup);
+            }
+        }
+
+        function prevStudent() {
+            if (currentStudents.length > 0 && currentStudentIndex > 0) {
+                currentStudentIndex--;
+                handleStudentChange();
+            }
+        }
+        
+        /**
+         * Handles the class/student selection change.
+         */
+        function handleStudentChange() {
+            if (currentStudentIndex < 0 || !currentClassName) {
+                renderReport();
+                return;
+            }
+            renderReport();
+        }
+        
+        function handleWaliKamarInput() {
+            // Trigger report render on input change for real-time update
+            if (currentClassName) {
+                renderReport();
+            }
+        }
+
+        // --- Perbaikan: Fungsi handlePrint dibuat global ---
+        function handlePrint() {
+            window.print();
+        }
+        
+        // --- REPORT RENDERING (Definisi di awal) ---
+        
+        async function renderReport() {
+            if (currentStudentIndex < 0 || !currentClassName) {
+                reportContent.innerHTML = `<div class="text-center p-20 text-gray-500"><p class="text-xl font-semibold">Silakan pilih kelas dan santri untuk melihat laporan.</p></div>`;
+                nextStudentBtn.disabled = true;
+                prevStudentBtn.disabled = true;
+                return;
+            }
+
+            const studentName = currentStudents[currentStudentIndex];
+            
+            // Tampilkan Loading State saat mengambil data
+            reportContent.innerHTML = `<div class="text-center p-20 text-indigo-500"><p class="text-xl font-semibold">Memuat data santri ${studentName} dari sumber data...</p></div>`;
+            
+            // Fetch data dari sumber (Simulasi Spreadsheet)
+            const sheetData = await fetchReportDataFromSheet(studentName);
+            
+            currentStudentReportData = sheetData || {};
+
+            // Gabungkan data dari sheet (jika ada) dengan data default (jika tidak ada)
+            const reportData = { ...generateDefaultReport(studentName, currentClassName), ...currentStudentReportData };
+
+            const level = currentClassName.startsWith('7') ? 'SMP' : 'SMA';
+            const schoolLevelData = schoolData[level];
+            const classData = schoolLevelData.classes[currentClassName];
+            const waliKelas = classData.waliKelas;
+            const kepalaSekolah = schoolLevelData.kepalaSekolah;
+            
+            const inputWaliKamar = waliKamarInput.value.trim();
+            const defaultWaliKamar = getWaliKamar(currentClassName);
+            const waliKamarDisplay = inputWaliKamar || defaultWaliKamar; 
+            const isSMP = level === 'SMP';
+            const headTitle = isSMP ? 'Kepala SMP' : 'Kepala SMA';
+            
+            // Calculate scores for proportional horizontal bar graph
+            const atsWidth = `${Math.min(100, reportData.ats_avg)}%`;
+            const sasWidth = `${Math.min(100, reportData.sas_avg)}%`;
+            
+            // Use the NIS from the loaded data
+            const displayNIS = reportData.nis || 'NIS-000';
+
+
+            const reportHtml = `
+                <!-- Header Laporan (Urutan & Ukuran Font Dibalik) -->
+                <div class="report-header flex items-start justify-between">
+                    <img src="https://iili.io/FsLlXA7.png" onerror="this.onerror=null; this.src='https://placehold.co/120x120/4f46e5/ffffff?text=Logo';" alt="Logo Sekolah" class="w-24 h-24 object-contain mr-4 flex-shrink-0">
+                    <div class="text-center flex-grow">
+                        <!-- Malika Islamic Boarding School: Lebih Kecil (text-xl) -->
+                        <h1 class="text-xl md:text-xl font-black text-indigo-900 uppercase leading-none mt-1">MALIKA ISLAMIC BOARDING SCHOOL</h1>
+                        <!-- RAPOR PERKEMBANGAN HOLISTIK SANTRI: Lebih Besar (text-2xl) -->
+                        <h2 class="text-xl md:text-2xl font-extrabold text-indigo-700 uppercase leading-tight mt-1">RAPOR PERKEMBANGAN HOLISTIK SANTRI</h2>
+                        
+                        <p class="text-xs text-gray-600 mt-2 font-semibold">
+                            ${schoolAddress}
+                        </p>
+                        <p class="text-sm text-gray-700 mt-1">
+                            Semester: <span class="font-bold">Ganjil 2024/2025</span>
+                        </p>
+                    </div>
+                    <div class="w-24 h-24 flex-shrink-0"></div> <!-- Placeholder for alignment -->
+                </div>
+                <!-- End Header Laporan -->
+
+                <!-- Detail Santri -->
+                <div class="mb-6 p-4 border border-gray-300 rounded-lg bg-gray-50">
+                    <table class="w-full text-sm text-gray-700">
+                        <tr>
+                            <td class="w-1/3 py-1 font-semibold">Nama Santri</td>
+                            <td class="w-2/3 py-1">: ${studentName}</td>
+                        </tr>
+                        <tr>
+                            <td class="py-1 font-semibold">NIS / Kelas</td>
+                            <td class="py-1">: ${displayNIS} / ${currentClassName}</td>
+                        </tr>
+                    </table>
+                </div>
+                
+                <!-- Keterangan sumber data dihapus di sini -->
+
+
+                <!-- Bagian 1: Akademik dan Perkembangan Diri (4 Kolom Visual) -->
+                <h3 class="text-xl font-bold border-l-4 border-indigo-600 pl-3 mb-4 text-gray-800">ASPEK AKADEMIK DAN PERKEMBANGAN DIRI</h3>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+
+                    <!-- Kartu 1: Nilai Rata-rata (GRAFIK KOMPARASI HORIZONTAL DENGAN NILAI) -->
+                    <div class="report-card p-4 border border-indigo-300 rounded-xl shadow-lg bg-gray-50">
+                        <h4 class="font-extrabold text-lg text-indigo-800 mb-3 flex items-center">
+                            <svg class="w-5 h-5 mr-2 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0h6m-6 0h-2m8-12V5a2 2 0 00-2-2h-2a2 2 0 00-2 2v2M9 19h6m-3-7a4 4 0 00-4-4V3m8 8V3"></path></svg>
+                            Grafik Komparasi Nilai Rata-rata
+                        </h4>
+                        
+                        <div class="space-y-4">
+                            <!-- ATS Bar -->
+                            <div>
+                                <p class="text-sm font-semibold text-gray-700 flex justify-between mb-1">
+                                    <span>ATS (Nilai Tengah Semester)</span>
+                                    <span class="font-bold">${reportData.ats_avg || '-'}</span>
+                                </p>
+                                <div class="w-full bg-indigo-200 rounded-full h-2.5">
+                                    <div class="bg-indigo-500 h-2.5 rounded-full" style="width: ${atsWidth}"></div>
+                                </div>
+                            </div>
+
+                            <!-- SAS Bar -->
+                            <div>
+                                <p class="text-sm font-semibold text-gray-700 flex justify-between mb-1">
+                                    <span>SAS (Nilai Akhir Semester)</span>
+                                    <span class="font-bold">${reportData.sas_avg || '-'}</span>
+                                </p>
+                                <div class="w-full bg-indigo-300 rounded-full h-2.5">
+                                    <div class="bg-indigo-700 h-2.5 rounded-full" style="width: ${sasWidth}"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 p-2 bg-gray-100 rounded-md border-l-4 border-indigo-400">
+                            <span class="font-semibold text-sm text-gray-800">Ulasan Tren:</span> ${reportData.scoreComparisonText || '-'}
+                        </div>
+                    </div>
+
+                    <!-- Kartu 2: Psikotes (Visual Perbandingan) -->
+                    <div class="report-card p-4 border border-purple-300 rounded-xl shadow-lg bg-gray-50 flex flex-col justify-between">
+                         <h4 class="font-extrabold text-lg text-purple-800 mb-3 flex items-center">
+                            <svg class="w-5 h-5 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                            Peningkatan Hasil Psikotes
+                        </h4>
+                        
+                        <div class="space-y-3 flex flex-col justify-center h-full">
+                            
+                            <!-- Hasil Awal (Visualisasi Awal) -->
+                            <div class="bg-gray-100 p-3 rounded-lg border-l-4 border-purple-400">
+                                <p class="text-xs font-bold text-purple-600 mb-1 flex items-center">
+                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                    Kondisi Awal
+                                </p>
+                                <p class="text-sm text-gray-700 font-semibold">${reportData.psikotes_initial || '-'}</p>
+                            </div>
+
+                            <!-- Indikator Peningkatan (Timeline Arrow) -->
+                            <div class="flex justify-center text-purple-600 font-bold">
+                                <svg class="w-8 h-8 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 13l-5 5m0 0l-5-5m5 5V6"></path></svg>
+                                <span class="text-sm self-center ml-2 text-indigo-700">Transisi & Peningkatan</span>
+                            </div>
+
+                            <!-- Hasil Terkini (Visualisasi Akhir) -->
+                            <div class="bg-purple-100 p-3 rounded-lg border-l-4 border-purple-600">
+                                <p class="text-xs font-bold text-purple-800 mb-1 flex items-center">
+                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                    Kondisi Terkini
+                                </p>
+                                <p class="text-sm text-gray-800 font-extrabold">${reportData.psikotes_current || '-'}</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Kartu 3: Mata Pelajaran (Text List) - Diposisikan di Bawah Kiri -->
+                    <div class="report-card p-4 border border-indigo-200 rounded-lg shadow-md bg-gray-50">
+                        <h4 class="font-bold text-lg text-indigo-800 mb-2">Mata Pelajaran: Unggul dan Perlu Peningkatan</h4>
+                        <p class="text-base mb-1">Mata Pelajaran Unggul: <span class="font-bold text-indigo-600">${reportData.excel_subjects || '-'}</span></p>
+                        <p class="text-base">Mata Pelajaran Perlu Peningkatan: <span class="font-bold text-red-600">${reportData.need_imp_subjects || '-'}</span></p>
+                    </div>
+
+                    <!-- Kartu 4: Hafalan Qur'an (Text Sederhana) - Diposisikan di Bawah Kanan, sejajar Mapel -->
+                    <div class="report-card p-4 border border-teal-300 rounded-lg shadow-md bg-gray-50">
+                        <h4 class="font-bold text-lg text-teal-800 mb-1">Pencapaian Hafalan Al-Qur'an</h4>
+                        <p class="text-base font-semibold text-gray-700">${reportData.hafalan || '-'}</p>
+                    </div>
+                </div>
+                <!-- End Bagian 1 -->
+
+
+                <!-- Bagian 2: Karakter dan Akhlak -->
+                <h3 class="text-xl font-bold border-l-4 border-indigo-600 pl-3 mb-4 mt-8 text-gray-800">II. ASPEK KARAKTER DAN AKHLAK</h3>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                    
+                    <!-- Kartu Ibadah Harian (Text Sederhana) -->
+                    <div class="report-card p-4 border border-indigo-300 rounded-lg shadow-md bg-gray-50">
+                        <h4 class="font-bold text-lg text-indigo-800 mb-1">Ibadah Harian</h4>
+                        <p class="text-base text-gray-700">${reportData.ibadah || '-'}</p>
+                    </div>
+
+                    <!-- Kartu Sikap dan Disiplin (Text Sederhana) -->
+                    <div class="report-card p-4 border border-red-300 rounded-lg shadow-md bg-gray-50">
+                        <h4 class="font-bold text-lg text-red-800 mb-1">Sikap dan Disiplin</h4>
+                        <p class="text-base text-gray-700">${reportData.sikap || '-'}</p>
+                    </div>
+
+                    <!-- Kartu Interaksi Sosial dan Kepemimpinan (Text Sederhana) -->
+                    <div class="report-card p-4 border border-orange-300 rounded-lg shadow-md bg-gray-50">
+                        <h4 class="font-bold text-lg text-orange-800 mb-1">Interaksi Sosial dan Kepemimpinan</h4>
+                        <p class="text-base text-gray-700">${reportData.interaksi || '-'}</p>
+                    </div>
+
+                    <!-- Kartu Prestasi Non-Akademik -->
+                    <div class="report-card p-4 border border-yellow-300 rounded-lg shadow-md bg-gray-50">
+                        <h4 class="font-bold text-lg text-yellow-800 mb-1">Prestasi Non-Akademik</h4>
+                        <p class="text-base font-semibold text-gray-800">${reportData.prestasi || '-'}</p>
+                    </div>
+
+                </div>
+                
+                <!-- BAGIAN GOAL DAN PESAN WALI KELAS -->
+                <div class="space-y-6 mt-8">
+                    <!-- Kartu Goal Semester -->
+                    <div class="p-6 border-4 border-dashed border-indigo-400 rounded-xl bg-indigo-50">
+                        <h4 class="font-extrabold text-xl text-indigo-800 mb-2 flex items-center">
+                            <svg class="w-6 h-6 mr-2 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                            Goal Semester Berikutnya
+                        </h4>
+                        <p class="text-base text-gray-800 font-medium">${reportData.goal_semester || 'Mohon diisi di file CSV.'}</p>
+                    </div>
+
+                    <!-- Kartu Pesan Wali Kelas -->
+                    <div class="p-6 border-4 border-dashed border-purple-400 rounded-xl bg-purple-50">
+                        <h4 class="font-extrabold text-xl text-purple-800 mb-2 flex items-center">
+                            <svg class="w-6 h-6 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h10m-9 4h6m4-4l-4 4m0 0l-4-4"></path></svg>
+                            Pesan Wali Kelas
+                        </h4>
+                        <p class="text-base text-gray-800 font-medium">${reportData.message_wali || 'Mohon diisi di file CSV.'}</p>
+                    </div>
+                </div>
+                <!-- End BAGIAN GOAL DAN PESAN WALI KELAS -->
+                
+                <!-- Tanda Tangan -->
+                <div class="mt-12 pt-4 flex flex-col items-center text-sm">
+                    <p class="text-center mb-8">Jakarta, ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+
+                    <!-- Kolom Wali Kelas dan Wali Kamar (Kiri dan Kanan) -->
+                    <div class="flex justify-between w-full mb-16">
+                        <!-- Wali Kelas (Kiri) -->
+                        <div class="w-1/4 text-center">
+                            <p>Wali Kelas</p>
+                            <div class="h-16"></div>
+                            <p class="font-bold underline">${waliKelas}</p>
+                        </div>
+                        
+                        <!-- Placeholder/Space (Tengah) -->
+                        <div class="w-1/4 text-center">
+                            &nbsp;
+                        </div>
+
+                        <!-- Wali Kamar (Kanan) -->
+                        <div class="w-1/4 text-center">
+                            <p>Wali Kamar</p>
+                            <div class="h-16"></div>
+                            <p class="font-bold underline">${waliKamarDisplay}</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Kepala Sekolah (Diposisikan di Tengah Bawah) -->
+                    <div class="w-1/3 text-center mt-8">
+                        <p>${headTitle}</p>
+                        <div class="h-16"></div>
+                        <p class="font-bold underline">${kepalaSekolah}</p>
+                    </div>
+                </div>
+            `;
+            reportContent.innerHTML = reportHtml;
+
+            // Update Next and Prev button states
+            updateNavigationButtons();
+        }
+
+        // --- NAVIGATION HANDLERS ---
+        
+        function updateNavigationButtons() {
+            nextStudentBtn.disabled = currentStudentIndex === currentStudents.length - 1;
+            prevStudentBtn.disabled = currentStudentIndex <= 0;
+            const total = currentStudents.length > 0 ? currentStudents.length : 0;
+            const current = currentStudentIndex >= 0 ? currentStudentIndex + 1 : 0;
+            
+            nextStudentBtn.textContent = `Next Santri (${current}/${total}) >`;
+            prevStudentBtn.textContent = `< Prev Santri`;
+            
+            if (current === total) {
+                nextStudentBtn.textContent = `Akhir Daftar`;
+            }
+            if (current === 0) {
+                 nextStudentBtn.textContent = `Next Santri`;
+            }
+        }
+        
+        function nextStudent() {
+            if (currentStudents.length > 0 && currentStudentIndex < currentStudents.length - 1) {
+                currentStudentIndex++;
+                handleStudentChange();
+            } else {
+                const popup = document.createElement('div');
+                popup.innerHTML = `
+                    <div id="modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                        <div class="bg-white p-6 rounded-lg shadow-xl max-w-sm text-center">
+                            <h3 class="text-xl font-bold mb-3 text-red-600">Selesai</h3>
+                            <p class="text-gray-700">Anda sudah mencapai santri terakhir di kelas ${currentClassName}.</p>
+                            <button onclick="document.getElementById('modal').remove()" class="mt-4 bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700">Tutup</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(popup);
+            }
+        }
+
+        function prevStudent() {
+            if (currentStudents.length > 0 && currentStudentIndex > 0) {
+                currentStudentIndex--;
+                handleStudentChange();
+            }
+        }
+        
+        /**
+         * Handles the class/student selection change.
+         */
+        function handleStudentChange() {
+            if (currentStudentIndex < 0 || !currentClassName) {
+                renderReport();
+                return;
+            }
+            renderReport();
+        }
+
+        function handleWaliKamarInput() {
+            // Trigger report render on input change for real-time update
+            if (currentClassName) {
+                renderReport();
+            }
+        }
+
+        // --- Perbaikan: Fungsi handlePrint dibuat global ---
+        function handlePrint() {
+            window.print();
+        }
+
+        classSelect.addEventListener('change', (event) => {
+            const value = event.target.value;
+            if (!value) {
+                currentClassName = null;
+                currentStudents = [];
+                currentStudentIndex = -1;
+                handleStudentChange();
+                return;
+            }
+
+            const [level, className] = value.split('|');
+            currentLevel = level;
+            currentClassName = className;
+            currentStudents = schoolData[level].classes[className].students;
+            currentStudentIndex = 0; // Start from the first student
+
+            nextStudentBtn.disabled = currentStudents.length <= 1;
+            
+            // Set default/placeholder name for Wali Kamar when class changes
+            waliKamarInput.value = getWaliKamar(className).replace(' (Default)', '');
+            
+            handleStudentChange();
+        });
+        
+        // --- UTILITY ---
+        function alertUser(message, type) {
+            const existingAlert = document.getElementById('custom-alert');
+            if (existingAlert) existingAlert.remove();
+            
+            const color = type === 'success' ? 'bg-green-100 border-green-400 text-green-700' : 'bg-red-100 border-red-400 text-red-700';
+            
+            const alertDiv = document.createElement('div');
+            alertDiv.id = 'custom-alert';
+            alertDiv.className = `no-print fixed top-4 left-1/2 transform -translate-x-1/2 p-4 rounded-lg shadow-lg border ${color} z-50`;
+            alertDiv.innerHTML = `<p class="font-semibold">${message}</p>`;
+            document.body.appendChild(alertDiv);
+            
+            setTimeout(() => alertDiv.remove(), 4000);
+        }
+
+        function initializeClassSelect() {
+            const levels = Object.keys(schoolData);
+            levels.forEach(level => {
+                const header = document.createElement('option');
+                header.value = "";
+                header.textContent = `--- ${level} ---`;
+                header.disabled = true;
+                header.classList.add('font-bold', 'bg-gray-200');
+                classSelect.appendChild(header);
+
+                const classes = schoolData[level].classes;
+                Object.keys(classes).forEach(className => {
+                    const option = document.createElement('option');
+                    option.value = `${level}|${className}`;
+                    option.textContent = className;
+                    classSelect.appendChild(option);
+                });
+            });
+        }
+        
+        // --- INTI SIMULASI UPLOAD CSV ---
+        
+        // Data dari file 'Ledger Rapor Holistik - Sheet1.csv' yang Anda unggah
+        const uploadedCsvContent = `Nama Santri,NIS Santri,Kelas Santri,Nilai Rata-rata ATS,Nilai Rata-rata SAS,Ulasan Tren Nilai,Hasil Psikotes Awal,Hasil Psikotes Terkini,Mata Pelajaran Unggul,Mata Pelajaran Kurang,Pencapaian Hafalan,Ibadah Harian,Sikap dan Disiplin,Interaksi Sosial,Prestasi Non Akademik,Goal Semester,Pesan Wali Kelas\r\nAbidzar Nuha Wafi,2526007,"7 B Putra",70,80,"Konsistensi belajar tinggi dengan pencapaian peningkatan 10 poin",Tidak displin ,Sangat disiplin,"Bahasa Indonesia , IPS dan Mahfuzhot",Matematika dan IPA,Juz 30 dan Juz 29 ( Surah Al Muzammil ),"100% disiplin melaksanakan sholat fardhu , tahajud dan dhuha",Beradab dan patuh terhadap peraturan,Supel dan pandai bergaul dengan teman,Juara 1 Nasyid Grup,Strategi belajar dan muhadhoroh lebih berkompetisi lagi,Terus seperti ini dan lanjutkan goal\r\nAch. Raihan Faiz As-Sudaisyi,2526008,"7 B Putra",70,69,"Konsistensi belajar menurun 1 poin",Tidak termotivasi,Sangat termotivasi,"Bahasa Indonesia , IPS dan Mahfuzhot",Matematika dan IPA,Juz 30 dan Juz 29 ( Surah Al Muzammil ),"100% disiplin melaksanakan sholat fardhu , tahajud dan dhuha",Beradab dan patuh terhadap peraturan,Supel dan pandai bergaul dengan teman,Juara 1 Nasyid Grup,Strategi belajar dan muhadhoroh lebih berkompetisi lagi,Terus seperti ini dan lanjutkan goal`;
+
+        
+        // Final Initialization Block
+        document.addEventListener('DOMContentLoaded', () => {
+            // Pasang event listeners untuk tombol navigasi
+            document.getElementById('prev-student-btn').addEventListener('click', prevStudent);
+            document.getElementById('next-student-btn').addEventListener('click', nextStudent);
+            
+            // Pasang event listener untuk input Wali Kamar
+            document.getElementById('wali-kamar-input').addEventListener('input', handleWaliKamarInput);
+
+            // Pasang event listener untuk tombol cetak
+            document.getElementById('print-pdf-btn').addEventListener('click', handlePrint);
+            
+            // Pasang event listener untuk tombol upload
+            document.getElementById('upload-btn').addEventListener('click', () => {
+                document.getElementById('data-upload').click();
+            });
+
+            // Mulai inisialisasi aplikasi
+            initializeClassSelect();
+            
+            // Tampilkan modal instruksi CSV (sesuai permintaan sebelumnya)
+            document.getElementById('csv-instruction-modal').classList.remove('hidden');
+
+            // Jalankan simulasi upload data CSV
+            processCsvData(uploadedCsvContent);
+        });
+    </script>
+</body>
+</html>
