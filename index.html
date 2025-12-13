@@ -65,6 +65,8 @@
         #report-container {
             min-height: 297mm; /* A4 height */
             width: 210mm; /* A4 width */
+            /* Tambahkan padding-bottom besar untuk memberi ruang bagi jspdf memotong dengan aman */
+            padding-bottom: 100px !important; 
         }
         
         /* Custom Header Styling for professional look - Changed from Green to Indigo */
@@ -470,25 +472,31 @@
         // Menggunakan window.jsPDF karena di load via script tag
         const { jsPDF } = window.jspdf;
 
-        // Menggunakan scale 2 untuk kualitas gambar yang lebih baik
-        html2canvas(input, { scale: 2 }).then(canvas => {
+        // Menggunakan scale 3 untuk kualitas gambar yang lebih baik (diperbaiki dari 2)
+        html2canvas(input, { 
+            scale: 3, 
+            useCORS: true // Memastikan gambar eksternal (logo) dimuat jika server mengizinkan
+        }).then(canvas => {
             const imgData = canvas.toDataURL('image/png');
             
             const pdf = new jsPDF('p', 'mm', 'a4');
             const imgWidth = 210; // A4 width in mm
             const pageHeight = 297; // A4 height in mm
-            
+            const margin = 10; // Margin tambahan (misalnya 10mm) untuk menghindari pemotongan konten
+
             // Hitung tinggi gambar yang diskalakan agar sesuai lebar A4
             const imgHeight = (canvas.height * imgWidth) / canvas.width;
             let heightLeft = imgHeight;
             let position = 0;
 
             // Tambahkan gambar ke halaman pertama
+            // Mengatur posisi awal gambar agar ada margin atas
             pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
             heightLeft -= pageHeight;
 
             // Tambahkan halaman baru jika konten lebih panjang dari 1 halaman (multipage)
-            while (heightLeft >= 0) {
+            // Menggunakan margin/padding tambahan untuk membantu pemotongan agar tidak di tengah teks
+            while (heightLeft > -10) { // Cek sisa tinggi, memberikan toleransi -10mm
                 position = heightLeft - imgHeight;
                 pdf.addPage();
                 pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
@@ -503,7 +511,7 @@
             alertUser("PDF berhasil diunduh!", "success");
         }).catch(error => {
             console.error("PDF generation error:", error);
-            alertUser("Gagal membuat PDF. Pastikan data santri sudah dimuat.", "error");
+            alertUser("Gagal membuat PDF. Pastikan data santri sudah dimuat dan koneksi internet stabil.", "error");
             
             // Kembalikan state tombol jika gagal
             printPdfBtn.disabled = false;
