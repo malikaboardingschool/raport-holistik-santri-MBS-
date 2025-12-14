@@ -103,7 +103,7 @@
 <body class="p-4 md:p-8">
 
     <div class="no-print mb-6 p-4 bg-white shadow-lg rounded-xl flex flex-col lg:flex-row items-center justify-between gap-4">
-        <h1 class="text-2xl font-bold text-gray-800">Sistem Rapor Holistik Santri</h1>
+        <h1 class="text-2xl font-bold text-gray-800">Sistem Laporan Santri (Lokal Data)</h1>
         <div class="flex flex-col sm:flex-row gap-3 w-full lg:w-auto flex-wrap">
             <select id="class-select" class="p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 w-full sm:w-48">
                 <option value="">Pilih Kelas</option>
@@ -606,7 +606,7 @@
                         ${schoolAddress}
                     </p>
                     <p class="text-sm text-gray-700 mt-1">
-                        Semester: <span class="font-bold">Ganjil 2025/2026</span>
+                        Semester: <span class="font-bold">Ganjil 2024/2025</span>
                     </p>
                 </div>
                 <div class="w-24 h-24 flex-shrink-0"></div> <!-- Placeholder for alignment -->
@@ -631,8 +631,8 @@
 
 
             <!-- Bagian 1: AKADEMIK DAN PERKEMBANGAN DIRI -->
-            <h3 class="text-xl font-bold border-l-4 border-indigo-600 pl-3 mb-4 text-gray-800">AKADEMIK DAN PERKEMBANGAN DIRI</h3>
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <h3 class="text-xl font-bold border-l-4 border-indigo-600 pl-3 text-gray-800">AKADEMIK DAN PERKEMBANGAN DIRI</h3> <!-- DIUBAH: mb-4 dihapus untuk menarik ke atas -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 pt-3"> <!-- DIUBAH: pt-3 ditambahkan untuk spasi antara judul dan konten -->
 
                 <!-- Kartu 1: Perbandingan Nilai Rata-rata -->
                 <div class="report-card p-4 border border-indigo-300 rounded-xl shadow-lg bg-gray-50">
@@ -665,7 +665,8 @@
                     </div>
 
                     <div class="mt-4 p-2 bg-gray-100 rounded-md border-l-4 border-indigo-400">
-                        <span class="font-semibold text-sm text-gray-800">Notes:</span> ${reportData.scoreComparisonText || '-'}
+                        <span class="font-semibold text-sm text-gray-800">Notes:</span> 
+                        <span class="text-xs text-gray-700">${reportData.scoreComparisonText || '-'}</span> <!-- DIUBAH: Font diperkecil menjadi text-xs -->
                     </div>
                 </div>
 
@@ -683,7 +684,7 @@
                                 <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                                 Hasil Psikotes Juni 2025
                             </p>
-                            <p class="text-xs text-gray-700 font-semibold">${reportData.psikotes_initial || '-'}</p>
+                            <p class="text-sm text-gray-700 font-semibold">${reportData.psikotes_initial || '-'}</p> <!-- DIUBAH: Font diperbesar menjadi text-sm -->
                         </div>
 
                         <!-- Hasil Terkini -->
@@ -692,7 +693,7 @@
                                 <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                                 Progres 1 Semester
                             </p>
-                            <p class="text-xs text-gray-800 font-extrabold">${reportData.psikotes_current || '-'}</p>
+                            <p class="text-sm text-gray-800 font-extrabold">${reportData.psikotes_current || '-'}</p> <!-- DIUBAH: Font diperbesar menjadi text-sm -->
                         </div>
                     </div>
                 </div>
@@ -700,21 +701,21 @@
                 <!-- Kartu 3: Analisis Daya Serap -->
                 <div class="report-card p-4 border border-indigo-200 rounded-lg shadow-md bg-gray-50">
                     <h4 class="font-bold text-lg text-indigo-800 mb-2">Analisis Daya Serap</h4>
-                    <p class="text-sm mb-1">Mata Pelajaran Unggul: <span class="font-bold text-indigo-600">${reportData.excel_subjects || '-'}</span></p>
-                    <p class="text-sm">Mata Pelajaran Perlu Peningkatan: <span class="font-bold text-red-600">${reportData.need_imp_subjects || '-'}</span></p>
+                    <p class="text-sm mb-1">Mata Pelajaran Unggul: <span class="font-bold text-indigo-600">${reportData.excel_subjects || '-'}</span></p> <!-- text-sm -->
+                    <p class="text-sm">Mata Pelajaran Perlu Peningkatan: <span class="font-bold text-red-600">${reportData.need_imp_subjects || '-'}</span></p> <!-- text-sm -->
                 </div>
 
                 <!-- Kartu 4: Tahfizh Qur’an -->
                 <div class="report-card p-4 border border-teal-300 rounded-lg shadow-md bg-gray-50">
                     <h4 class="font-bold text-lg text-teal-800 mb-1">Tahfizh Qur’an</h4>
-                    <p class="text-sm font-semibold text-gray-700">${reportData.hafalan || '-'}</p>
+                    <p class="text-sm font-semibold text-gray-700">${reportData.hafalan || '-'}</p> <!-- text-sm -->
                 </div>
             </div>
             <!-- End Bagian 1 -->
 
 
             <!-- Bagian 2: KARAKTER DAN KEMATANGAN DIRI -->
-            <h3 class="text-xl font-bold border-l-4 border-indigo-600 pl-3 mb-4 mt-4 text-gray-800">KARAKTER DAN KEMATANGAN DIRI</h3>
+            <h3 class="text-xl font-bold border-l-4 border-indigo-600 pl-3 mb-4 mt-4 text-gray-800">KARAKTER DAN KEMATANGAN DIRI</h3> <!-- DIUBAH: mt-8 menjadi mt-4 -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                 
                 <!-- Kartu Ibadah Harian (Text Sederhana) -->
